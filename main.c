@@ -1,15 +1,15 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
-#define Cols 20
-#define ColWidth 25
-#define Rows 20
-#define RowHeight 25
-#define WinWidth Cols * ColWidth
-#define WinHeight Rows * RowHeight
-#define WinName "Snake"
+#include <time.h>
 
-#define FontFileName "Silkscreen-Regular.ttf"
+#define WinWidth 960
+#define WinHeight 720
+#define WinName "CountDown"
+
+//#define FontFileName "fonts/Jost/static/Jost-Medium.ttf"
+//#define FontFileName "fonts/Jost/static/Jost-Black.ttf"
+#define FontFileName "fonts/Silkscreen/Silkscreen-Regular.ttf"
 
 #define RendererFlags SDL_RENDERER_ACCELERATED
 #define WindowFlags SDL_WINDOW_BORDERLESS // | SDL_WINDOW_RESIZABLE
@@ -33,12 +33,16 @@ int main(int argc, char *argv[]){
 	SDL_Rect countdownRect;
 	countdownRect.x = 0; countdownRect.y = 0;
 	countdownRect.w = WinWidth; countdownRect.h = WinHeight;
-	//countdownRect.x = 5 * ColWidth; countdownRect.y = 5 * RowHeight;
-	//countdownRect.w = ColWidth; countdownRect.h = RowHeight;
 	
 	long int kTimer = 0;
+	char ctStr[16];
 	
 	while(1){
+		for(unsigned i = 0; i < sizeof(ctStr); i++){ ctStr[i] = '\0'; }
+		//strcpy(ctStr, "Josh");
+		sprintf(ctStr, "%lu", time(0));
+	countdownText = TTF_RenderText_Solid(countdownFont, ctStr, countdownColor);
+	countdownTexture = SDL_CreateTextureFromSurface(renderer, countdownText);
 	SDL_SetRenderTarget(renderer, countdownTexture);
 	SDL_RenderClear(renderer);
 	SDL_RenderCopy(renderer, countdownTexture, NULL, &countdownRect);
