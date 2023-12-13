@@ -56,6 +56,7 @@ int main(int argc, char *argv[]){
 	Uint32 wavLength;
 	Uint8 *wavBuffer;
 	
+	_Bool hours = 1;
 	_Bool secs = 1;
 	char mode = currenttime;
 	//char mode = timer;
@@ -66,11 +67,10 @@ int main(int argc, char *argv[]){
 	unsigned hms[3];
 	
 	time_t initTime = time(0);
-	//unsigned timerLen = 120 * 3600 + 61;
 	unsigned timerLen = 5;
 	long int remtime;
 	_Bool timerAlarm = 0;
-	unsigned timerChangeTime = 5;
+	unsigned timerChangeTime = 60;
 	
 	while(1){
 		if(mode == currenttime){
@@ -83,6 +83,7 @@ int main(int argc, char *argv[]){
 				hms[0] = floor((remtime) / 3600);
 				hms[1] = floor((remtime - hms[0] * 3600) / 60);
 				hms[2] = remtime % 60;
+				if(remtime <= 60){ hours = 0; secs = 1; }
 				if(remtime <= timerChangeTime){
 					dispColor.r = AlertTextR;
 					dispColor.g = AlertTextG;
@@ -104,13 +105,15 @@ int main(int argc, char *argv[]){
 			}
 		}
 		
-		if(hms[0] < 10){ sprintf(dispStr, "0%u", hms[0]); }
-		else{ sprintf(dispStr, "%u", hms[0]); }
-		if(hms[1] < 10){ sprintf(dispStr+2, ":0%u", hms[1]); }
-		else{ sprintf(dispStr+2, ":%u", hms[1]); }
+		if(hours){
+			if(hms[0] < 10){ sprintf(dispStr, "0%u:", hms[0]); }
+			else{ sprintf(dispStr, "%u:", hms[0]); }
+		}
+		if(hms[1] < 10){ sprintf(dispStr+3*hours, "0%u", hms[1]); }
+		else{ sprintf(dispStr+3*hours, "%u", hms[1]); }
 		if(secs){
-			if(hms[2] < 10){ sprintf(dispStr+5, ":0%u", hms[2]); }
-			else{ sprintf(dispStr+5, ":%u", hms[2]); }
+			if(hms[2] < 10){ sprintf(dispStr+3*hours+2, ":0%u", hms[2]); }
+			else{ sprintf(dispStr+3*hours+2, ":%u", hms[2]); }
 		}
 		
 		while(SDL_PollEvent(&event)){
@@ -126,6 +129,7 @@ int main(int argc, char *argv[]){
 								timerLen = 62; initTime = time(0);
 							}else{
 								mode = currenttime;
+								hours = 1;
 							}
 							timerAlarm = 0;
 							dispColor.r = DefaultTextR;
@@ -134,6 +138,11 @@ int main(int argc, char *argv[]){
 							break;
 						case SDL_SCANCODE_S:
 							secs = !secs;
+							break;
+						case SDL_SCANCODE_H:
+							if(mode == timer){
+								hours = !hours;
+							}
 							break;
 					}
 					break;
