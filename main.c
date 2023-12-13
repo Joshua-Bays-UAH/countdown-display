@@ -7,10 +7,11 @@
 #define WinHeight 720
 #define WinName "Charger Time"
 
-//#define FontFileName "fonts/Jost/static/Jost-Medium.ttf"
+#define FontFileName "fonts/Jost/static/Jost-Medium.ttf"
 //#define FontFileName "fonts/Jost/static/Jost-Black.ttf"
 //#define FontFileName "fonts/Silkscreen/Silkscreen-Regular.ttf"
-#define FontFileName "fonts/Electrolize/Electrolize-Regular.ttf"
+//#define FontFileName "fonts/Electrolize/Electrolize-Regular.ttf"
+#define FontFileName "fonts/Nunito/NunitoSans-VariableFont_YTLC,opsz,wdth,wght.ttf"
 
 //#define AlarmFilename "sounds/RR.wav"
 #define AlarmFilename "sounds/chime.wav"
@@ -19,7 +20,7 @@
 //#define WindowFlags SDL_WINDOW_BORDERLESS
 #define WindowFlags SDL_WINDOW_FULLSCREEN_DESKTOP
 
-#define DispSize 140 // Font size of display
+#define DispSize 720 // Font size of display
 
 #define TimerChangeTime 300 // 5 Minutes
 #define DefaultTextR 0
