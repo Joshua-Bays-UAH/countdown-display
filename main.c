@@ -9,7 +9,8 @@
 
 //#define FontFileName "fonts/Jost/static/Jost-Medium.ttf"
 //#define FontFileName "fonts/Jost/static/Jost-Black.ttf"
-#define FontFileName "fonts/Silkscreen/Silkscreen-Regular.ttf"
+//#define FontFileName "fonts/Silkscreen/Silkscreen-Regular.ttf"
+#define FontFileName "fonts/Electrolize/Electrolize-Regular.ttf"
 
 #define RendererFlags SDL_RENDERER_ACCELERATED
 //#define WindowFlags SDL_WINDOW_BORDERLESS
@@ -31,25 +32,38 @@ int main(int argc, char *argv[]){
 	SDL_ShowCursor(0);
 	SDL_Event event;
 	
-	TTF_Font *countdownFont = TTF_OpenFont(FontFileName, 120);
+	TTF_Font *countdownFont = TTF_OpenFont(FontFileName, 140);
 	SDL_Color countdownColor = {255, 255, 255, 255};
 	SDL_Surface *countdownSurface = TTF_RenderText_Solid(countdownFont, "TeSt", countdownColor);
 	SDL_Texture *countdownTexture = SDL_CreateTextureFromSurface(renderer, countdownSurface);
 	
+	/*
 	SDL_Rect countdownRect;
 	countdownRect.x = 0; countdownRect.y = 0;
 	countdownRect.w = WinWidth; countdownRect.h = WinHeight;
+	*/
 	
 	char mode = currenttime;
 	
 	time_t now;
 	struct tm *tm_struct;
 	char ctStr[16];
+	unsigned hms[3];
 	
 	while(1){
 		if(mode == currenttime){
 			now = time(NULL); tm_struct = localtime(&now);
-			sprintf(ctStr, "%u:%u:%u", tm_struct->tm_hour, tm_struct->tm_min, tm_struct->tm_sec);
+			hms[0] = tm_struct->tm_hour; hms[1] = tm_struct->tm_min; hms[2] = tm_struct->tm_sec;
+			
+			if(hms[0] < 10){ sprintf(ctStr, "0%u:", hms[0]); }
+			else{ sprintf(ctStr, "%u:", hms[0]); }
+			
+			if(hms[1] < 10){ sprintf(ctStr+3, "0%u:", hms[1]); }
+			else{ sprintf(ctStr+3, "%u:", hms[1]); }
+			
+			if(hms[2] < 10){ sprintf(ctStr+6, "0%u", hms[2]); }
+			else{ sprintf(ctStr+6, "%u", hms[2]); }
+			
 		}
 		
 		while(SDL_PollEvent(&event)){
@@ -69,7 +83,6 @@ int main(int argc, char *argv[]){
 		SDL_RenderPresent(renderer);
 		SDL_DestroyTexture(countdownTexture);
 		SDL_FreeSurface(countdownSurface);
-		SDL_Delay(16);
 	}
 	
 	return 0;
