@@ -12,7 +12,10 @@
 #define FontFileName "fonts/Silkscreen/Silkscreen-Regular.ttf"
 
 #define RendererFlags SDL_RENDERER_ACCELERATED
-#define WindowFlags SDL_WINDOW_BORDERLESS // | SDL_WINDOW_RESIZABLE
+//#define WindowFlags SDL_WINDOW_BORDERLESS
+#define WindowFlags SDL_WINDOW_FULLSCREEN_DESKTOP
+
+enum Modes{ currenttime, timer };
 
 int main(int argc, char *argv[]){
 	SDL_Renderer *renderer;
@@ -25,29 +28,29 @@ int main(int argc, char *argv[]){
 	renderer = SDL_CreateRenderer(window, -1, RendererFlags);
 	if(!renderer){ printf("Failed to create renderer: %s\n", SDL_GetError()); return 1; }
 	
+	SDL_ShowCursor(0);
+	SDL_Event event;
+	
 	TTF_Font *countdownFont = TTF_OpenFont(FontFileName, 120);
 	SDL_Color countdownColor = {255, 255, 255, 255};
-	SDL_Surface *countdownText = TTF_RenderText_Solid(countdownFont, "TeSt", countdownColor);
-	SDL_Texture *countdownTexture = SDL_CreateTextureFromSurface(renderer, countdownText);
+	SDL_Surface *countdownSurface = TTF_RenderText_Solid(countdownFont, "TeSt", countdownColor);
+	SDL_Texture *countdownTexture = SDL_CreateTextureFromSurface(renderer, countdownSurface);
 	
 	SDL_Rect countdownRect;
 	countdownRect.x = 0; countdownRect.y = 0;
 	countdownRect.w = WinWidth; countdownRect.h = WinHeight;
 	
-	long int kTimer = 0;
+	char mode = currenttime;
+	
+	time_t now;
+	struct tm *tm_struct;
 	char ctStr[16];
-	SDL_Event event;
 	
 	while(1){
-		for(unsigned i = 0; i < sizeof(ctStr); i++){ ctStr[i] = '\0'; }
-		//strcpy(ctStr, "Josh");
-		sprintf(ctStr, "%lu", time(0));
-		
-		countdownText = TTF_RenderText_Solid(countdownFont, ctStr, countdownColor);
-		countdownTexture = SDL_CreateTextureFromSurface(renderer, countdownText);
-		SDL_SetRenderTarget(renderer, countdownTexture);
-		SDL_RenderClear(renderer);
-		SDL_RenderCopy(renderer, countdownTexture, NULL, NULL);
+		if(mode == currenttime){
+			now = time(NULL); tm_struct = localtime(&now);
+			sprintf(ctStr, "%u:%u:%u", tm_struct->tm_hour, tm_struct->tm_min, tm_struct->tm_sec);
+		}
 		
 		while(SDL_PollEvent(&event)){
 			switch(event.type){
@@ -57,9 +60,15 @@ int main(int argc, char *argv[]){
 			}
 		}
 	
+		countdownSurface = TTF_RenderText_Solid(countdownFont, ctStr, countdownColor);
+		countdownTexture = SDL_CreateTextureFromSurface(renderer, countdownSurface);
+		SDL_SetRenderTarget(renderer, countdownTexture);
+		SDL_RenderClear(renderer);
+		SDL_RenderCopy(renderer, countdownTexture, NULL, NULL);
+		
 		SDL_RenderPresent(renderer);
 		SDL_DestroyTexture(countdownTexture);
-		SDL_FreeSurface(countdownText);
+		SDL_FreeSurface(countdownSurface);
 		SDL_Delay(16);
 	}
 	
