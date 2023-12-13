@@ -3,11 +3,11 @@
 
 #include <time.h> // Used for getting the current time
 
-#define WinWidth 960
-#define WinHeight 720
+#define WinWidth 1
+#define WinHeight 1
 #define WinName "Charger Time"
 
-#define FontFileName "fonts/Jost/static/Jost-Medium.ttf"
+//#define FontFileName "fonts/Jost/static/Jost-Medium.ttf"
 //#define FontFileName "fonts/Jost/static/Jost-Black.ttf"
 //#define FontFileName "fonts/Silkscreen/Silkscreen-Regular.ttf"
 //#define FontFileName "fonts/Electrolize/Electrolize-Regular.ttf"
@@ -16,19 +16,19 @@
 //#define AlarmFilename "sounds/RR.wav"
 #define AlarmFilename "sounds/chime.wav"
 
-#define RendererFlags SDL_RENDERER_ACCELERATED
+//#define RendererFlags SDL_RENDERER_ACCELERATED
+#define RendererFlags SDL_RENDERER_PRESENTVSYNC
 //#define WindowFlags SDL_WINDOW_BORDERLESS
 #define WindowFlags SDL_WINDOW_FULLSCREEN_DESKTOP
 
-#define DispSize 720 // Font size of display
+#define DispSize 900 // Font size of display
 
-#define TimerChangeTime 300 // 5 Minutes
 #define DefaultTextR 0
-#define DefaultTextG 199
+#define DefaultTextG 119
 #define DefaultTextB 200
-#define AlertR 255
-#define AlertG 0
-#define AlertB 0
+#define AlertTextR 255
+#define AlertTextG 0
+#define AlertTextB 0
 
 enum Modes{ currenttime, timer };
 
@@ -52,58 +52,41 @@ int main(int argc, char *argv[]){
 	SDL_Surface *dispSurface;
 	SDL_Texture *dispTexture;
 	
-	/*
-	SDL_Rect dispRect;
-	dispRect.x = 0; dispRect.y = 0;
-	dispRect.w = WinWidth; dispRect.h = WinHeight;
-	*/
-	
 	SDL_AudioSpec wavSpec;
 	Uint32 wavLength;
 	Uint8 *wavBuffer;
 	
 	_Bool secs = 1;
-	//char mode = currenttime;
-	char mode = timer;
+	char mode = currenttime;
+	//char mode = timer;
 	
 	time_t now;
 	struct tm *tm_struct;
 	char dispStr[16];
 	unsigned hms[3];
 	
-	unsigned dispRect;
-	
 	time_t initTime = time(0);
 	//unsigned timerLen = 120 * 3600 + 61;
 	unsigned timerLen = 5;
 	long int remtime;
 	_Bool timerAlarm = 0;
+	unsigned timerChangeTime = 5;
 	
 	while(1){
 		if(mode == currenttime){
 			now = time(NULL); tm_struct = localtime(&now);
 			hms[0] = tm_struct->tm_hour; hms[1] = tm_struct->tm_min; hms[2] = tm_struct->tm_sec;
 			
-			if(hms[0] < 10){ sprintf(dispStr, "0%u", hms[0]); }
-			else{ sprintf(dispStr, "%u", hms[0]); }
-			
-			if(hms[1] < 10){ sprintf(dispStr+2, ":0%u", hms[1]); }
-			else{ sprintf(dispStr+2, ":%u", hms[1]); }
-			
-			if(secs){
-				if(hms[2] < 10){ sprintf(dispStr+5, ":0%u", hms[2]); }
-				else{ sprintf(dispStr+5, ":%u", hms[2]); }
-			}
 		}else if(mode == timer){
 			remtime = timerLen - (time(0) - initTime);
 			if(remtime > 0){
 				hms[0] = floor((remtime) / 3600);
 				hms[1] = floor((remtime - hms[0] * 3600) / 60);
 				hms[2] = remtime % 60;
-				if(remtime <= TimerChangeTime){
-					dispColor.r = 255;
-					dispColor.g = 0;
-					dispColor.b = 0;
+				if(remtime <= timerChangeTime){
+					dispColor.r = AlertTextR;
+					dispColor.g = AlertTextG;
+					dispColor.b = AlertTextB;
 				}
 			}else{
 				remtime = 0;
@@ -119,22 +102,40 @@ int main(int argc, char *argv[]){
 				}
 	
 			}
-			if(hms[0] < 10){ sprintf(dispStr, "0%u", hms[0]); }
-			else{ sprintf(dispStr, "%u", hms[0]); }
-			
-			if(hms[1] < 10){ sprintf(dispStr+2, ":0%u", hms[1]); }
-			else{ sprintf(dispStr+2, ":%u", hms[1]); }
-			
-			if(secs){
-				if(hms[2] < 10){ sprintf(dispStr+5, ":0%u", hms[2]); }
-				else{ sprintf(dispStr+5, ":%u", hms[2]); }
-			}
+		}
+		
+		if(hms[0] < 10){ sprintf(dispStr, "0%u", hms[0]); }
+		else{ sprintf(dispStr, "%u", hms[0]); }
+		if(hms[1] < 10){ sprintf(dispStr+2, ":0%u", hms[1]); }
+		else{ sprintf(dispStr+2, ":%u", hms[1]); }
+		if(secs){
+			if(hms[2] < 10){ sprintf(dispStr+5, ":0%u", hms[2]); }
+			else{ sprintf(dispStr+5, ":%u", hms[2]); }
 		}
 		
 		while(SDL_PollEvent(&event)){
 			switch(event.type){
 				case SDL_QUIT:
 					exit(0);
+					break;
+				case SDL_KEYDOWN:
+					switch(event.key.keysym.scancode){
+						case SDL_SCANCODE_M:
+							if(mode == currenttime){
+								mode = timer;
+								timerLen = 62; initTime = time(0);
+							}else{
+								mode = currenttime;
+							}
+							timerAlarm = 0;
+							dispColor.r = DefaultTextR;
+							dispColor.g = DefaultTextG;
+							dispColor.b = DefaultTextB;
+							break;
+						case SDL_SCANCODE_S:
+							secs = !secs;
+							break;
+					}
 					break;
 			}
 		}
