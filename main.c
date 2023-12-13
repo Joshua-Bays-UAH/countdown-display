@@ -1,11 +1,11 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
-#include <time.h>
+#include <time.h> // Used for getting the current time
 
 #define WinWidth 960
 #define WinHeight 720
-#define WinName "CountDown"
+#define WinName "Charger Time"
 
 //#define FontFileName "fonts/Jost/static/Jost-Medium.ttf"
 //#define FontFileName "fonts/Jost/static/Jost-Black.ttf"
@@ -32,17 +32,18 @@ int main(int argc, char *argv[]){
 	SDL_ShowCursor(0);
 	SDL_Event event;
 	
-	TTF_Font *countdownFont = TTF_OpenFont(FontFileName, 140);
-	SDL_Color countdownColor = {255, 255, 255, 255};
-	SDL_Surface *countdownSurface = TTF_RenderText_Solid(countdownFont, "TeSt", countdownColor);
-	SDL_Texture *countdownTexture = SDL_CreateTextureFromSurface(renderer, countdownSurface);
+	TTF_Font *dispFont = TTF_OpenFont(FontFileName, 140);
+	SDL_Color dispColor = {255, 255, 255, 255};
+	SDL_Surface *dispSurface;
+	SDL_Texture *dispTexture;
 	
 	/*
-	SDL_Rect countdownRect;
-	countdownRect.x = 0; countdownRect.y = 0;
-	countdownRect.w = WinWidth; countdownRect.h = WinHeight;
+	SDL_Rect dispRect;
+	dispRect.x = 0; dispRect.y = 0;
+	dispRect.w = WinWidth; dispRect.h = WinHeight;
 	*/
 	
+	_Bool secs = 0;
 	char mode = currenttime;
 	
 	time_t now;
@@ -50,19 +51,23 @@ int main(int argc, char *argv[]){
 	char ctStr[16];
 	unsigned hms[3];
 	
+	unsigned dispRect;
+	
 	while(1){
 		if(mode == currenttime){
 			now = time(NULL); tm_struct = localtime(&now);
 			hms[0] = tm_struct->tm_hour; hms[1] = tm_struct->tm_min; hms[2] = tm_struct->tm_sec;
 			
-			if(hms[0] < 10){ sprintf(ctStr, "0%u:", hms[0]); }
-			else{ sprintf(ctStr, "%u:", hms[0]); }
+			if(hms[0] < 10){ sprintf(ctStr, "0%u", hms[0]); }
+			else{ sprintf(ctStr, "%u", hms[0]); }
 			
-			if(hms[1] < 10){ sprintf(ctStr+3, "0%u:", hms[1]); }
-			else{ sprintf(ctStr+3, "%u:", hms[1]); }
+			if(hms[1] < 10){ sprintf(ctStr+2, ":0%u", hms[1]); }
+			else{ sprintf(ctStr+2, ":%u", hms[1]); }
 			
-			if(hms[2] < 10){ sprintf(ctStr+6, "0%u", hms[2]); }
-			else{ sprintf(ctStr+6, "%u", hms[2]); }
+			if(secs){
+				if(hms[2] < 10){ sprintf(ctStr+5, ":0%u", hms[2]); }
+				else{ sprintf(ctStr+5, ":%u", hms[2]); }
+			}
 			
 		}
 		
@@ -74,15 +79,15 @@ int main(int argc, char *argv[]){
 			}
 		}
 	
-		countdownSurface = TTF_RenderText_Solid(countdownFont, ctStr, countdownColor);
-		countdownTexture = SDL_CreateTextureFromSurface(renderer, countdownSurface);
-		SDL_SetRenderTarget(renderer, countdownTexture);
+		dispSurface = TTF_RenderText_Solid(dispFont, ctStr, dispColor);
+		dispTexture = SDL_CreateTextureFromSurface(renderer, dispSurface);
+		SDL_SetRenderTarget(renderer, dispTexture);
 		SDL_RenderClear(renderer);
-		SDL_RenderCopy(renderer, countdownTexture, NULL, NULL);
+		SDL_RenderCopy(renderer, dispTexture, NULL, NULL);
 		
 		SDL_RenderPresent(renderer);
-		SDL_DestroyTexture(countdownTexture);
-		SDL_FreeSurface(countdownSurface);
+		SDL_DestroyTexture(dispTexture);
+		SDL_FreeSurface(dispSurface);
 	}
 	
 	return 0;
