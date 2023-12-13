@@ -36,18 +36,19 @@ int main(int argc, char *argv[]){
 	
 	long int kTimer = 0;
 	char ctStr[16];
+	SDL_Event event;
 	
 	while(1){
 		for(unsigned i = 0; i < sizeof(ctStr); i++){ ctStr[i] = '\0'; }
 		//strcpy(ctStr, "Josh");
 		sprintf(ctStr, "%lu", time(0));
-	countdownText = TTF_RenderText_Solid(countdownFont, ctStr, countdownColor);
-	countdownTexture = SDL_CreateTextureFromSurface(renderer, countdownText);
-	SDL_SetRenderTarget(renderer, countdownTexture);
-	SDL_RenderClear(renderer);
-	SDL_RenderCopy(renderer, countdownTexture, NULL, &countdownRect);
-	//Detach the texture
-		SDL_Event event;
+		
+		countdownText = TTF_RenderText_Solid(countdownFont, ctStr, countdownColor);
+		countdownTexture = SDL_CreateTextureFromSurface(renderer, countdownText);
+		SDL_SetRenderTarget(renderer, countdownTexture);
+		SDL_RenderClear(renderer);
+		SDL_RenderCopy(renderer, countdownTexture, NULL, NULL);
+		
 		while(SDL_PollEvent(&event)){
 			switch(event.type){
 				case SDL_QUIT:
@@ -57,6 +58,8 @@ int main(int argc, char *argv[]){
 		}
 	
 		SDL_RenderPresent(renderer);
+		SDL_DestroyTexture(countdownTexture);
+		SDL_FreeSurface(countdownText);
 		SDL_Delay(16);
 	}
 	
