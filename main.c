@@ -1,7 +1,11 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
+#include <stdlib.h>
+#include <stdio.h>
 #include <time.h> // Used for getting the current time
+
+#include "RS-232/rs232.h"
 
 #define WinWidth 1
 #define WinHeight 1
@@ -11,10 +15,10 @@
 //#define FontFileName "fonts/Jost/static/Jost-Black.ttf"
 //#define FontFileName "fonts/Silkscreen/Silkscreen-Regular.ttf"
 //#define FontFileName "fonts/Electrolize/Electrolize-Regular.ttf"
-#define FontFileName "fonts/Nunito/NunitoSans-VariableFont_YTLC,opsz,wdth,wght.ttf"
+#define FontFileName "/home/josh/School/ELTC/countdown-display/fonts/Nunito/NunitoSans-VariableFont_YTLC,opsz,wdth,wght.ttf"
 
 //#define AlarmFilename "sounds/RR.wav"
-#define AlarmFilename "sounds/chime.wav"
+#define AlarmFilename "/home/josh/School/ELTC/countdown-display/sounds/chime.wav"
 
 //#define RendererFlags SDL_RENDERER_ACCELERATED
 #define RendererFlags SDL_RENDERER_PRESENTVSYNC
@@ -33,8 +37,16 @@
 enum Modes{ currenttime, timer };
 
 int main(int argc, char *argv[]){
+	int cport_nr = 16;
+	int bdrate = 9600;
+	char rsmode[]={'8','N','1',0};
+	if(RS232_OpenComport(cport_nr, bdrate, rsmode, 0)){
+		printf("Can not open comport\n");
+		return(0);
+	}
+	
 	unsigned st = time(0);
-	int offset = 0;
+	long int offset = 0;
 	
 	SDL_Renderer *renderer;
 	SDL_Window *window;
@@ -75,27 +87,40 @@ int main(int argc, char *argv[]){
 	time_t initTime = time(0);
 	time_t alarmTime;
 	struct tm *tm_struct;
+	unsigned n;
 	
-	FILE* readfile = fopen("cmd.txt", "r");
+	//FILE* readfile = fopen("cmd.txt", "r");
 	char buff[32];
-	fgets(buff, sizeof(buff), readfile);
+	//fgets(buff, sizeof(buff), readfile);
 	
 	while(1){
+		n = RS232_PollComport(cport_nr, buff, 4095);
+		if(n > 0){
+			buff[n] = 0;   /* always put a "null" at the end of a string! */
+			for(unsigned i=0; i < n; i++){
+				if(buff[i] < 32)  /* replace unreadable control-codes by dots */
+				{
+				buff[i] = '.';
+				}
+			}
+			printf("%s", buff);
+		}
 		if(strlen(buff) > 0){
-			if(strncmp(buff, "set timer ", 10) == 0){
+			if(strncmp(buff, "sett ", 5) == 0){
 				mode = timer;
-				timerLen = (buff[10] - '0') * 36000;
-				timerLen += (buff[11] - '0') * 3600;
-				timerLen += (buff[13] - '0') * 600;
-				timerLen += (buff[14] - '0') * 60;
-				timerLen += (buff[16] - '0') * 10;
-				timerLen += (buff[17] - '0');
+				timerLen = (buff[5] - '0') * 36000;
+				timerLen += (buff[6] - '0') * 3600;
+				timerLen += (buff[8] - '0') * 600;
+				timerLen += (buff[9] - '0') * 60;
+				timerLen += (buff[11] - '0') * 10;
+				timerLen += (buff[12] - '0');
+				initTime = time(0);
 			}else if(strncmp(buff, "set clock", 9) == 0){
 				mode = currenttime;
 			}else if(strncmp(buff, "toggle seconds", 14) == 0){
 				secs = !secs;
-			}else if(strncmp(buff, "set now ", 8) == 0){
-				sscanf(buff + 8, "%x", &offset);
+			}else if(strncmp(buff, "setc ", 5) == 0){
+				sscanf(buff + 5, "%x", &offset);
 				offset = offset - st;
 			}
 			for(unsigned i = 0; i < sizeof(buff); i++){ buff[i] = '\0'; }
