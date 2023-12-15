@@ -1,3 +1,6 @@
+RS-232 Library:
+	https://www.teuniz.net/RS-232/
+
 Fonts:
 	https://fonts.google.com/specimen/Silkscreen/about
 	https://fonts.google.com/specimen/Jost

@@ -15,17 +15,17 @@
 //#define FontFileName "fonts/Jost/static/Jost-Black.ttf"
 //#define FontFileName "fonts/Silkscreen/Silkscreen-Regular.ttf"
 //#define FontFileName "fonts/Electrolize/Electrolize-Regular.ttf"
-#define FontFileName "/home/josh/School/ELTC/countdown-display/fonts/Nunito/NunitoSans-VariableFont_YTLC,opsz,wdth,wght.ttf"
+#define FontFileName "/home/josh/School/ETLC/countdown-display/fonts/Nunito/NunitoSans-VariableFont_YTLC,opsz,wdth,wght.ttf"
 
 //#define AlarmFilename "sounds/RR.wav"
-#define AlarmFilename "/home/josh/School/ELTC/countdown-display/sounds/chime.wav"
+#define AlarmFilename "/home/josh/School/ETLC/countdown-display/sounds/chime.wav"
 
 //#define RendererFlags SDL_RENDERER_ACCELERATED
 #define RendererFlags SDL_RENDERER_PRESENTVSYNC
 //#define WindowFlags SDL_WINDOW_BORDERLESS
 #define WindowFlags SDL_WINDOW_FULLSCREEN_DESKTOP
 
-#define DispSize 900 // Font size of display
+#define DispSize 150 // Font size of display
 
 #define DefaultTextR 0
 #define DefaultTextG 119
@@ -42,7 +42,7 @@ int main(int argc, char *argv[]){
 	char rsmode[]={'8','N','1',0};
 	if(RS232_OpenComport(cport_nr, bdrate, rsmode, 0)){
 		printf("Can not open comport\n");
-		return(0);
+		//return 1;
 	}
 	
 	unsigned st = time(0);
@@ -120,8 +120,8 @@ int main(int argc, char *argv[]){
 			}else if(strncmp(buff, "toggle seconds", 14) == 0){
 				secs = !secs;
 			}else if(strncmp(buff, "setc ", 5) == 0){
-				sscanf(buff + 5, "%x", &offset);
-				offset = offset - st;
+				sscanf(buff + 5, "%li", &offset);
+				offset = offset - time(0);
 			}
 			for(unsigned i = 0; i < sizeof(buff); i++){ buff[i] = '\0'; }
 		}

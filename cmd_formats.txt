@@ -1,0 +1,5 @@
+setc HEX TIMESTAMP
+	Sets the display to show the local time (HH:MM:SS format)
+
+sett HH:MM:SS
+	Ex: "set timer 01:15:00"
