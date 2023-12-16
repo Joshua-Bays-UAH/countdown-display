@@ -10,33 +10,7 @@
 
 #include "RS-232/rs232.h"
 
-#define WinWidth 1
-#define WinHeight 1
-#define WinName "Charger Time"
-
-//#define FontFileName "fonts/Jost/static/Jost-Medium.ttf"
-//#define FontFileName "fonts/Jost/static/Jost-Black.ttf"
-//#define FontFileName "fonts/Silkscreen/Silkscreen-Regular.ttf"
-//#define FontFileName "fonts/Electrolize/Electrolize-Regular.ttf"
-#define FontFileName "/home/josh/School/ETLC/countdown-display/fonts/Nunito/NunitoSans-VariableFont_YTLC,opsz,wdth,wght.ttf"
-
-//#define AlarmFilename "sounds/RR.wav"
-#define AlarmFilename "/home/josh/School/ETLC/countdown-display/sounds/chime.wav"
-
-//#define RendererFlags SDL_RENDERER_ACCELERATED
-#define RendererFlags SDL_RENDERER_PRESENTVSYNC
-//#define WindowFlags SDL_WINDOW_BORDERLESS
-#define WindowFlags SDL_WINDOW_FULLSCREEN_DESKTOP
-
-#define ClockSize 600 // Font size of display
-#define TimerSize 750 // Font size of display
-
-#define DefaultTextR 0
-#define DefaultTextG 119
-#define DefaultTextB 200
-#define AlertTextR 255
-#define AlertTextG 0
-#define AlertTextB 0
+#include "defs.h"
 
 int cport_nr = 16; // ttyUSB0
 int bdrate = 9600;
@@ -149,6 +123,7 @@ int main(int argc, char *argv[]){
 	time_t now;
 	time_t alarmTime;
 	_Bool tPres = 0;
+	_Bool cPres = 0;
 	
 	char clockStr[13];
 	char timerStr[12];
@@ -229,6 +204,7 @@ int main(int argc, char *argv[]){
 								initTime = time(0);
 								timerLen = 12;
 							}
+							printf("Changed\n");
 							/*
 							if(mode == currenttime){
 								timerLen = 5; initTime = time(0);
@@ -269,8 +245,8 @@ int main(int argc, char *argv[]){
 					break;
 			}
 		}
-		if(timerAlarm){ SDL_SetRenderDrawColor(renderer, 0, 119, 200, 255); }
-		else{ SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); }
+		//if(timerAlarm){ SDL_SetRenderDrawColor(renderer, 0, 119, 200, 255); }
+		//else{ SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); }
 		//else{ SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); }
 		
 		
@@ -293,17 +269,19 @@ int main(int argc, char *argv[]){
 			SDL_SetRenderTarget(renderer, timerTexture);
 			SDL_RenderCopy(renderer, timerTexture, NULL, clockMode ? &timerRect : NULL);
 			tPres = 1;
-		}
+		}else{ tPres = 0; }
+		
 		if(clockMode){
 			clockSurface = TTF_RenderText_Solid(clockFont, clockStr, clockColor);
 			clockTexture = SDL_CreateTextureFromSurface(renderer, clockSurface);
 			SDL_SetRenderTarget(renderer, clockTexture);
 			SDL_RenderCopy(renderer, clockTexture, NULL, timerMode ? &clockRect : NULL);
-		}
+			cPres = 1;
+		}else{ tPres = 0; }
 		
 		SDL_RenderPresent(renderer);
 		
-		if(clockMode){
+		if(cPres){
 			SDL_DestroyTexture(clockTexture);
 			SDL_FreeSurface(clockSurface);
 		}
