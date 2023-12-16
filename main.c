@@ -1,9 +1,12 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
-#include <stdlib.h>
+#define _XOPEN_SOURCE
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <time.h> // Used for getting the current time
+#include <pthread.h>
 
 #include "RS-232/rs232.h"
 
@@ -25,7 +28,8 @@
 //#define WindowFlags SDL_WINDOW_BORDERLESS
 #define WindowFlags SDL_WINDOW_FULLSCREEN_DESKTOP
 
-#define DispSize 150 // Font size of display
+#define ClockSize 600 // Font size of display
+#define TimerSize 750 // Font size of display
 
 #define DefaultTextR 0
 #define DefaultTextG 119
@@ -34,19 +38,69 @@
 #define AlertTextG 0
 #define AlertTextB 0
 
-enum Modes{ currenttime, timer };
+int cport_nr = 16; // ttyUSB0
+int bdrate = 9600;
+unsigned bytesRecieved;
+char rsmode[]={'8','N','1',0};
+char cmdBuff[32];
+long int offset = 0;
+struct tm *tim;
+_Bool timerMode = 0;
+time_t initTime;
+unsigned timerLen = 10;
+_Bool stopwatchMode = 0;
+long int remtime;
+
+void *cmdInterpreter(void *vargp){
+	while(1){
+		start:
+		if(RS232_OpenComport(cport_nr, bdrate, rsmode, 0)){
+			//printf("Can not open comport\n");
+			//return 1;
+			//cport_nr++;
+		//}else if(RS232_OpenComport(cport_nr, bdrate, rsmode, 0)){
+			//cport_nr--;
+			//printf("Can not open comport\n");
+			//return 1;
+			goto start;
+		}
+		SDL_Delay(500);
+		bytesRecieved = RS232_PollComport(cport_nr, cmdBuff, 4095);
+		RS232_CloseComport(cport_nr);
+		if(bytesRecieved > 0){
+			cmdBuff[bytesRecieved] = '\0';
+			printf("C: %s\n", cmdBuff);
+			if(strncmp(cmdBuff, "setc ", 5) == 0 && strlen(cmdBuff) >= 23){ // TODO: Add command prefix
+				cmdBuff[19] = '\0';
+				strptime(cmdBuff+5, "%m%d%Y%H%M%S", tim);
+				printf("O: %lu\n", mktime(tim));
+				offset = mktime(tim) - time(0);
+			}else if(strncmp(cmdBuff, "sett ", 5) == 0 && strlen(cmdBuff) >= 13){
+				timerLen = (cmdBuff[5] - '0') * 36000;
+				timerLen += (cmdBuff[6] - '0') * 3600;
+				timerLen += (cmdBuff[8] - '0') * 600;
+				timerLen += (cmdBuff[9] - '0') * 60;
+				timerLen += (cmdBuff[11] - '0') * 10;
+				timerLen += (cmdBuff[12] - '0');
+				initTime = time(0);
+				remtime = timerLen - (time(0) - initTime);
+				printf("T: %u\n", timerLen);
+				stopwatchMode = 0;
+				timerMode = 1;
+			}else if(strncmp(cmdBuff, "sets", 4) == 0){
+				timerMode = 1;
+				stopwatchMode = 1;
+				initTime = time(0);
+				printf("Stopwatch\n");
+			}
+			for(unsigned i = 0; i < sizeof(cmdBuff); i++){ cmdBuff[i] = '\0'; }
+		}
+	}
+}
 
 int main(int argc, char *argv[]){
-	int cport_nr = 16;
-	int bdrate = 9600;
-	char rsmode[]={'8','N','1',0};
-	if(RS232_OpenComport(cport_nr, bdrate, rsmode, 0)){
-		printf("Can not open comport\n");
-		//return 1;
-	}
-	
 	unsigned st = time(0);
-	long int offset = 0;
+	initTime = time(0);
 	
 	SDL_Renderer *renderer;
 	SDL_Window *window;
@@ -58,118 +112,110 @@ int main(int argc, char *argv[]){
 	if(!window){ printf("Failed to open %d x %d window: %s\n", WinWidth, WinHeight, SDL_GetError()); return 1; }
 	renderer = SDL_CreateRenderer(window, -1, RendererFlags);
 	if(!renderer){ printf("Failed to create renderer: %s\n", SDL_GetError()); return 1; }
-	
+
 	SDL_ShowCursor(0);
 	SDL_Event event;
-	
-	TTF_Font *dispFont = TTF_OpenFont(FontFileName, DispSize);
-	SDL_Color dispColor = {DefaultTextR, DefaultTextG, DefaultTextB, 255};
-	SDL_Surface *dispSurface;
-	SDL_Texture *dispTexture;
 	
 	SDL_AudioSpec wavSpec;
 	Uint32 wavLength;
 	Uint8 *wavBuffer;
 	SDL_AudioDeviceID deviceId;
+
+	TTF_Font *clockFont = TTF_OpenFont(FontFileName, ClockSize);
+	TTF_Font *timerFont = TTF_OpenFont(FontFileName, TimerSize);
+	SDL_Color timerColor = {DefaultTextR, DefaultTextG, DefaultTextB, 255};
+	SDL_Color clockColor = {DefaultTextR, DefaultTextG, DefaultTextB, 255};
+	SDL_Surface *clockSurface, *timerSurface;
+	SDL_Texture *clockTexture, *timerTexture;
 	
-	_Bool hours = 1;
+	SDL_Rect clockRect = {0, 0, 0, 0};
+	SDL_GetWindowSize(window, &clockRect.w, &clockRect.h);
+	clockRect.h /= 2;
+	SDL_Rect timerRect = {0, 0, 0, 0};
+	SDL_GetWindowSize(window, &timerRect.w, &timerRect.h);
+	timerRect.h /= 2;
+	timerRect.y = timerRect.h;
+	
+	_Bool hours[2];
 	_Bool secs = 1;
 	_Bool timerAlarm = 0;
 	_Bool alarmClosed = 1;
-	char mode = currenttime;
-	long int remtime;
+	_Bool clockMode = 1;
+	_Bool am;
+	long int watchtime;
 	unsigned hms[3];
 	unsigned alarmLen = 5;
-	unsigned timerLen = 5;
-	unsigned timerChangeTime = 60;
-	char dispStr[16];
+	unsigned timerChangeTime = 5;
 	time_t now;
-	time_t initTime = time(0);
 	time_t alarmTime;
-	struct tm *tm_struct;
-	unsigned n;
+	_Bool tPres = 0;
 	
-	//FILE* readfile = fopen("cmd.txt", "r");
-	char buff[32];
-	//fgets(buff, sizeof(buff), readfile);
+	char clockStr[13];
+	char timerStr[12];
+	strcpy(timerStr, "!");
 	
+	pthread_t cmdThread;
+	pthread_create(&cmdThread, NULL, cmdInterpreter, NULL);
+	
+	// Main loop
 	while(1){
-		n = RS232_PollComport(cport_nr, buff, 4095);
-		if(n > 0){
-			buff[n] = 0;   /* always put a "null" at the end of a string! */
-			for(unsigned i=0; i < n; i++){
-				if(buff[i] < 32)  /* replace unreadable control-codes by dots */
-				{
-				buff[i] = '.';
-				}
-			}
-			printf("%s", buff);
+		// Create the clock string
+		now = time(0) + offset;
+		tim = localtime(&now);
+		hms[0] = tim->tm_hour;
+		hms[1] = tim->tm_min;
+		hms[2] = tim->tm_sec;
+		am = 1;
+		if(hms[0] == 0){ /*am = 1;*/ hms[0] = 12; }
+		else if(hms[0] > 12){ am = 0; hms[0] -= 12; }
+		
+		sprintf(clockStr, " %u:", hms[0]);
+		if(hms[1] < 10){ sprintf(clockStr + strlen(clockStr), "0%u", hms[1]); }
+		else{ sprintf(clockStr + strlen(clockStr), "%u", hms[1]); }
+		if(secs){
+			if(hms[2] < 10){ sprintf(clockStr + strlen(clockStr), ":0%u", hms[2]); }
+			else{ sprintf(clockStr + strlen(clockStr), ":%u", hms[2]); }
+			//sprintf(clockStr+7+(hms[0]<10), " %s ", am ? "AM" : "PM");
 		}
-		if(strlen(buff) > 0){
-			if(strncmp(buff, "sett ", 5) == 0){
-				mode = timer;
-				timerLen = (buff[5] - '0') * 36000;
-				timerLen += (buff[6] - '0') * 3600;
-				timerLen += (buff[8] - '0') * 600;
-				timerLen += (buff[9] - '0') * 60;
-				timerLen += (buff[11] - '0') * 10;
-				timerLen += (buff[12] - '0');
-				initTime = time(0);
-			}else if(strncmp(buff, "set clock", 9) == 0){
-				mode = currenttime;
-			}else if(strncmp(buff, "toggle seconds", 14) == 0){
-				secs = !secs;
-			}else if(strncmp(buff, "setc ", 5) == 0){
-				sscanf(buff + 5, "%li", &offset);
-				offset = offset - time(0);
-			}
-			for(unsigned i = 0; i < sizeof(buff); i++){ buff[i] = '\0'; }
-		}
-		if(mode == currenttime){
-			now = time(NULL) + offset; tm_struct = localtime(&now);
-			hms[0] = tm_struct->tm_hour; hms[1] = tm_struct->tm_min; hms[2] = tm_struct->tm_sec;
-			if(hms[0] == 0){ hms[0] = 12; }
-		}else if(mode == timer){
-			remtime = timerLen - (time(0) - initTime);
-			if(remtime > 0){
+		sprintf(clockStr + strlen(clockStr), " %s ", am ? "AM" : "PM");
+		
+		if(timerMode){
+			if(stopwatchMode){
+				hours[1] = 1;
+				watchtime = time(0) - initTime;
+				hms[0] = floor((watchtime) / 3600);
+				hms[1] = floor((watchtime - hms[0] * 3600) / 60);
+				hms[2] = watchtime % 60;
+				if(hms[0] == 0){ hours[1] = 0; }
+				if(hours[1]){
+					if(hms[0] < 10){ sprintf(timerStr, "0%u:", hms[0]); }
+					else{ sprintf(timerStr, "%u:", hms[0]); }
+				}else{ sprintf(timerStr, "   "); }
+				if(hms[1] < 10){ sprintf(timerStr + strlen(timerStr), "0%u", hms[1]); }
+				else{ sprintf(timerStr + strlen(timerStr), "%u", hms[1]); }
+				if(hms[2] < 10){ sprintf(timerStr + strlen(timerStr), ":0%u", hms[2]); }
+				else{ sprintf(timerStr + strlen(timerStr), ":%u", hms[2]); }
+				if(!hours[1]){ sprintf(timerStr + strlen(timerStr), "   "); }
+			}else{
+				remtime = timerLen - (time(0) - initTime);
+				if(remtime < 0){ remtime = 0; }
 				hms[0] = floor((remtime) / 3600);
 				hms[1] = floor((remtime - hms[0] * 3600) / 60);
 				hms[2] = remtime % 60;
-				//if(remtime <= 60){ hours = 0; secs = 1; }
-				if(remtime <= timerChangeTime){
-					hours = 0; secs = 1;
-					dispColor.r = AlertTextR;
-					dispColor.g = AlertTextG;
-					dispColor.b = AlertTextB;
-				}
-			}else{
-				remtime = 0;
-				hms[0] = 0; hms[1] = 0; hms[2] = 0;
-				if(!timerAlarm){
-					timerAlarm = 1;
-					SDL_LoadWAV(AlarmFilename, &wavSpec, &wavBuffer, &wavLength);
-					deviceId = SDL_OpenAudioDevice(NULL, 0, &wavSpec, NULL, 0);
-					SDL_QueueAudio(deviceId, wavBuffer, wavLength);
-					SDL_PauseAudioDevice(deviceId, 0);
-					alarmTime = time(0); alarmClosed = 0;
-					dispColor.r = 255; dispColor.g = 255; dispColor.b = 255;
-					//dispColor.r = 0; dispColor.g = 0; dispColor.b = 0;
-				}
-	
+				hours[1] = hms[0] > 0;
+				if(hours[1]){
+					if(hms[0] < 10){ sprintf(timerStr, "0%u:", hms[0]); }
+					else{ sprintf(timerStr, "%u:", hms[0]); }
+				}else{ sprintf(timerStr, "   "); }
+				if(hms[1] < 10){ sprintf(timerStr+3, "0%u", hms[1]); }
+				else{ sprintf(timerStr+3, "%u", hms[1]); }
+				if(hms[2] < 10){ sprintf(timerStr+5, ":0%u", hms[2]); }
+				else{ sprintf(timerStr+5, ":%u", hms[2]); }
+				if(!hours[1]){ sprintf(timerStr+8, "   "); }
 			}
 		}
 		
-		if(hours){
-			if(hms[0] < 10){ sprintf(dispStr, "0%u:", hms[0]); }
-			else{ sprintf(dispStr, "%u:", hms[0]); }
-		}
-		if(hms[1] < 10){ sprintf(dispStr+3*hours, "0%u", hms[1]); }
-		else{ sprintf(dispStr+3*hours, "%u", hms[1]); }
-		if(secs){
-			if(hms[2] < 10){ sprintf(dispStr+3*hours+2, ":0%u", hms[2]); }
-			else{ sprintf(dispStr+3*hours+2, ":%u", hms[2]); }
-		}
-		
+		// Window Events
 		while(SDL_PollEvent(&event)){
 			switch(event.type){
 				case SDL_QUIT:
@@ -178,48 +224,93 @@ int main(int argc, char *argv[]){
 				case SDL_KEYDOWN:
 					switch(event.key.keysym.scancode){
 						case SDL_SCANCODE_M:
+							timerMode = !timerMode;
+							if(timerMode){
+								initTime = time(0);
+								timerLen = 12;
+							}
+							/*
 							if(mode == currenttime){
-								mode = timer;
 								timerLen = 5; initTime = time(0);
 							}else{
 								mode = currenttime;
 								hours = 1;
 							}
-							timerAlarm = 0;
-							dispColor.r = DefaultTextR;
-							dispColor.g = DefaultTextG;
-							dispColor.b = DefaultTextB;
+							*/
+							/*
+							if(timerMode){
+								timerMode = 1;
+								timerLen = 5;
+								initTime = time(0);
+								timerAlarm = 0;
+								timerColor.r = DefaultTextR;
+								timerColor.g = DefaultTextG;
+								timerColor.b = DefaultTextB;
+							}
+							*/
+							break;
+						case SDL_SCANCODE_T:
+							if(timerMode){
+								stopwatchMode = !stopwatchMode;
+							}
+							if(!stopwatchMode){
+								timerLen = 12;
+							}
+							if(stopwatchMode){
+								initTime = time(0);
+							}
 							break;
 						case SDL_SCANCODE_S:
 							secs = !secs;
 							break;
 						case SDL_SCANCODE_H:
-							if(mode == timer){
-								hours = !hours;
-							}
 							break;
 					}
 					break;
 			}
 		}
-		if(!alarmClosed && time(0) - alarmTime >= alarmLen){
-			SDL_CloseAudioDevice(deviceId);
-			alarmClosed = 1;
-		}
-	
-		dispSurface = TTF_RenderText_Solid(dispFont, dispStr, dispColor);
-		dispTexture = SDL_CreateTextureFromSurface(renderer, dispSurface);
-		SDL_SetRenderTarget(renderer, dispTexture);
 		if(timerAlarm){ SDL_SetRenderDrawColor(renderer, 0, 119, 200, 255); }
 		else{ SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); }
 		//else{ SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); }
+		
+		
 		SDL_RenderClear(renderer);
-		SDL_RenderCopy(renderer, dispTexture, NULL, NULL);
+
+		if(timerMode){
+			if(remtime <= timerChangeTime && !stopwatchMode){
+				timerColor.r = 255;
+				timerColor.g = 0;
+				timerColor.b = 0;
+			}else{
+				timerColor.r = DefaultTextR;
+				timerColor.g = DefaultTextG;
+				timerColor.b = DefaultTextB;
+			}
+			//timerRect.w = (hours[1] ? SDL_GetWindowSurface(window)->w : .8 * SDL_GetWindowSurface(window)->w);
+			//timerRect.y = (hours[1] ? timerRect.w : .125 * timerRect.w);
+			timerSurface = TTF_RenderText_Solid(timerFont, timerStr, timerColor);
+  			timerTexture = SDL_CreateTextureFromSurface(renderer, timerSurface);
+			SDL_SetRenderTarget(renderer, timerTexture);
+			SDL_RenderCopy(renderer, timerTexture, NULL, clockMode ? &timerRect : NULL);
+			tPres = 1;
+		}
+		if(clockMode){
+			clockSurface = TTF_RenderText_Solid(clockFont, clockStr, clockColor);
+			clockTexture = SDL_CreateTextureFromSurface(renderer, clockSurface);
+			SDL_SetRenderTarget(renderer, clockTexture);
+			SDL_RenderCopy(renderer, clockTexture, NULL, timerMode ? &clockRect : NULL);
+		}
+		
 		SDL_RenderPresent(renderer);
-		SDL_DestroyTexture(dispTexture);
-		SDL_FreeSurface(dispSurface);
+		
+		if(clockMode){
+			SDL_DestroyTexture(clockTexture);
+			SDL_FreeSurface(clockSurface);
+		}
+		if(tPres){
+			SDL_DestroyTexture(timerTexture);
+			SDL_FreeSurface(timerSurface);
+		}
 	}
-	
 	return 0;
 }
-
