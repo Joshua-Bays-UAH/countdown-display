@@ -277,7 +277,7 @@ int main(int argc, char *argv[]){
 			SDL_SetRenderTarget(renderer, clockTexture);
 			SDL_RenderCopy(renderer, clockTexture, NULL, timerMode ? &clockRect : NULL);
 			cPres = 1;
-		}else{ tPres = 0; }
+		}else{ cPres = 0; }
 		
 		SDL_RenderPresent(renderer);
 		
