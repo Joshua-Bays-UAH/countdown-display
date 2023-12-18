@@ -1,0 +1,44 @@
+Serial Commands for Countdown Display
+Joshua Bays (UAH ETLC)
+
+setc
+	Ex: setc 122520232015450000
+	Set the clock to a given time in the MMDDYYYYhhmmss format.
+	(Example above sets the clock to 12.25.2023 at 8:15:45 PM)
+
+sett
+	Ex: sett 00:55:05
+	Set the timer to a specific time in the hh:mm:ss format.
+	(Example above sets a timer for 55 minutes and 5 seconds)
+
+swon
+	Ex: swon
+	Turn on the stopwatch. The stopwatch will display automatically.
+
+swon
+	Ex: swoff
+	Turn off the stopwatch. The stopwatch will stop displaying automatically.
+
+togc
+	Ex: togc
+	Toggle the clock from displaying.
+
+togt
+	Ex: togt
+	Toggle the timer from displaying.
+
+toga
+	Ex: toga
+	Toggle the alarm sound.
+
+pzt
+	Ex: pzt
+	Pause/Resume the timer.
+
+pzs
+	Ex: pzs
+	Pause/Resume the stopwatch
+
+sec
+	Ex: sec
+	Toggle the seconds display on the clock
