@@ -14,7 +14,7 @@
 
 /* Setup initial modes */
 _Bool clockMode = 1; /* Clock displayed */
-_Bool timerMode = 1; /* Timer/stopwatch displayed/running */
+_Bool timerMode = 0; /* Timer/stopwatch displayed/running */
 _Bool stopwatchMode = 0; /* timer or stopwatch enabled (both cannot be simeltaneously run) */
 
 /* Global clock variables */
@@ -29,6 +29,7 @@ long int timerRem = 0; /* Time remaining on timer */
 long int watchtime = 0; /* Stopwatch runtime */
 _Bool timerPause = 0; /* If timer is paused */
 _Bool stopwatchPause = 0; /* If stopwatch is paused */
+_Bool timerAlarm = 0; /* If the timer alarm has been played */
 _Bool alarmPlay = 1; /* Toggle if alert is played */
 
 /* Process that reads/interprets serial commands from DMPS */
@@ -48,7 +49,7 @@ int main(int argc, char *argv[]){
 	if(!window){ printf("Failed to open %d x %d window: %s\n", WinWidth, WinHeight, SDL_GetError()); return 1; }
 	renderer = SDL_CreateRenderer(window, -1, RendererFlags);
 	if(!renderer){ printf("Failed to create renderer: %s\n", SDL_GetError()); return 1; }
-
+	
 	SDL_ShowCursor(0); /* Do not display the mouse */
 	SDL_Event event; /* Event handler */
 	
@@ -71,27 +72,35 @@ int main(int argc, char *argv[]){
 	timerRect.y = timerRect.h;
 	_Bool tPres = 0; /* Track if the timer was presented to the screen */
 	
+	SDL_Rect fullRect = {0, 0, 0, 0}; /* If only the clock or only the timer/stopwatch is displayed, it will resized to look better on the window*/
+	SDL_GetWindowSize(window, &fullRect.w, &fullRect.h);
+	fullRect.x = .05*fullRect.w;
+	fullRect.y = .25*fullRect.h;
+	fullRect.w *= .9;
+	fullRect.h *= .5;
+	
 	/* Setup sound handling */
 	SDL_AudioSpec wavSpec;
 	Uint32 wavLength;
 	Uint8 *wavBuffer;
 	SDL_AudioDeviceID audioDevice;
-
+	
 	_Bool tHours; /* Only display the hours place on the timer if the time remaining >= 60 minutes*/
-	_Bool timerAlarm = 0; /* If the timer alarm has been played */
 	_Bool alarmClosed = 1; /* Handler to close the alarm sound after being pkayed */
 	_Bool am; /* Display AM/PM on the clock */
 	unsigned hms[3]; /* Hours, minutes, and seconds of the clock */
 	time_t now; /* Dummy variable to */
 	time_t alarmTime;
 	
-	char clockStr[13];
-	char timerStr[12];
+	/* Strings to handle clock and timer/stopwatch displays */
+	char clockStr[16];
+	char timerStr[16];
 	
+	/* Start the command interpreter */
 	pthread_t cmdThread;
 	pthread_create(&cmdThread, NULL, cmdInterpreter, NULL);
 	
-	// Main loop
+	/* Main loop */
 	while(1){
 		if(clockMode){
 			/* Get the current time */
@@ -105,17 +114,18 @@ int main(int argc, char *argv[]){
 			am = 1;
 			if(hms[0] == 0){ hms[0] = 12; } /* Make 24-hour format into 12-hour */
 			else if(hms[0] > 12){ am = 0; hms[0] -= 12; }
-			sprintf(clockStr, " %u:", hms[0]);
+			sprintf(clockStr, "%u:", hms[0]);
 			if(hms[1] < 10){ sprintf(clockStr + strlen(clockStr), "0%u", hms[1]); }
 			else{ sprintf(clockStr + strlen(clockStr), "%u", hms[1]); }
 			if(secs){
 				if(hms[2] < 10){ sprintf(clockStr + strlen(clockStr), ":0%u", hms[2]); }
 				else{ sprintf(clockStr + strlen(clockStr), ":%u", hms[2]); }
 			}
-			sprintf(clockStr + strlen(clockStr), " %s ", am ? "AM" : "PM");
+			sprintf(clockStr + strlen(clockStr), " %s", am ? "AM" : "PM");
 		}
 		
 		if(timerMode){
+			memset(timerStr, '\0', sizeof(timerStr)); /* Clear the timer/stopwatch string */
 			if(stopwatchMode){ /* Stopwatch handling */
 				/* Update stopwatch runtime (if unpaused) */
 				if(!stopwatchPause){ watchtime = time(0) - initTime; }
@@ -128,12 +138,12 @@ int main(int argc, char *argv[]){
 				if(tHours){
 					if(hms[0] < 10){ sprintf(timerStr, "0%u:", hms[0]); }
 					else{ sprintf(timerStr, "%u:", hms[0]); }
-				}else{ sprintf(timerStr, "   "); }
+				}//else{ sprintf(timerStr, "   "); }
 				if(hms[1] < 10){ sprintf(timerStr + strlen(timerStr), "0%u", hms[1]); }
 				else{ sprintf(timerStr + strlen(timerStr), "%u", hms[1]); }
 				if(hms[2] < 10){ sprintf(timerStr + strlen(timerStr), ":0%u", hms[2]); }
 				else{ sprintf(timerStr + strlen(timerStr), ":%u", hms[2]); }
-				if(!tHours){ sprintf(timerStr + strlen(timerStr), "   "); }
+				//if(!tHours){ sprintf(timerStr + strlen(timerStr), "   "); }
 			}else{ /* Timer handling */
 				/* Update time remaining (if unpaused) */
 				if(!timerPause){ timerRem = timerLen - (time(0) - initTime); }
@@ -147,12 +157,12 @@ int main(int argc, char *argv[]){
 				if(tHours){
 					if(hms[0] < 10){ sprintf(timerStr, "0%u:", hms[0]); }
 					else{ sprintf(timerStr, "%u:", hms[0]); }
-				}else{ sprintf(timerStr, "   "); }
+				}//else{ sprintf(timerStr, "   "); }
 				if(hms[1] < 10){ sprintf(timerStr+3, "0%u", hms[1]); }
 				else{ sprintf(timerStr+3, "%u", hms[1]); }
 				if(hms[2] < 10){ sprintf(timerStr+5, ":0%u", hms[2]); }
 				else{ sprintf(timerStr+5, ":%u", hms[2]); }
-				if(!tHours){ sprintf(timerStr+8, "   "); }
+				//if(!tHours){ sprintf(timerStr+8, "   "); }
 				
 				/* Play alarm if timer has hit 00:00:00 */
 				if(timerRem == 0 && alarmPlay && !timerAlarm){
@@ -184,13 +194,13 @@ int main(int argc, char *argv[]){
 		
 		/* Clear the window */
 		SDL_RenderClear(renderer);
-
+		
 		/* Draw the clock */
 		if(clockMode){
 			clockSurface = TTF_RenderText_Solid(clockFont, clockStr, clockColor);
 			clockTexture = SDL_CreateTextureFromSurface(renderer, clockSurface);
 			SDL_SetRenderTarget(renderer, clockTexture);
-			SDL_RenderCopy(renderer, clockTexture, NULL, timerMode ? &clockRect : NULL);
+			SDL_RenderCopy(renderer, clockTexture, NULL, timerMode ? &clockRect : &fullRect);
 			cPres = 1;
 		}else{ cPres = 0; }
 		
@@ -201,7 +211,7 @@ int main(int argc, char *argv[]){
 			timerSurface = TTF_RenderText_Solid(timerFont, timerStr, timerColor);
   			timerTexture = SDL_CreateTextureFromSurface(renderer, timerSurface);
 			SDL_SetRenderTarget(renderer, timerTexture);
-			SDL_RenderCopy(renderer, timerTexture, NULL, clockMode ? &timerRect : NULL);
+			SDL_RenderCopy(renderer, timerTexture, NULL, clockMode ? &timerRect : &fullRect);
 			tPres = 1;
 		}else{ tPres = 0; }
 		
@@ -263,6 +273,7 @@ void *cmdInterpreter(void *vargp){
 				timerRem = timerLen - (time(0) - initTime);
 				stopwatchMode = 0;
 				timerMode = 1;
+				timerAlarm = 0;
 				
 				/* printf("T: %u\n", timerLen); */
 			}else if(strncmp(cmdBuff, "swon", 4) == 0){ /* swon command: starts a stopwatch */
@@ -285,7 +296,7 @@ void *cmdInterpreter(void *vargp){
 				/* printf("Clock toggled\n"); */
 			}else if(strncmp(cmdBuff, "togt", 4) == 0){ /* togt command: toggles the timer/stopwatch on the display and cancels the timer/stopwatch */
 				timerMode = !timerMode;
-				if(timerMode){ initTime = time(0); timerLen = 12; }
+				if(timerMode){ initTime = time(0); timerLen = DefaultTimer; timerAlarm = 0; }
 				
 				/* printf("Timer toggled\n"); */
 			}else if(strncmp(cmdBuff, "toga", 4) == 0){ /* toga command: toggles the alarm sound */
@@ -311,10 +322,8 @@ void *cmdInterpreter(void *vargp){
 					}/* else{ printf("Timer paused\n"); } */
 				}
 			}else if(strncmp(cmdBuff, "sec", 3) == 0){ /* sec command: toggles the seconds on the clock */
-				if(!timerMode){
 					secs = !secs;
 					/* printf("Seconds place toggled \n"); */
-				}
 			}
 			memset(cmdBuff, sizeof(cmdBuff), '\0'); /* Clear the command string */
 		}
