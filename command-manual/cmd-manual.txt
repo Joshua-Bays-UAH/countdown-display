@@ -15,7 +15,7 @@ swon
 	Ex: swon
 	Turn on the stopwatch. The stopwatch will display automatically.
 
-swon
+swoff
 	Ex: swoff
 	Turn off the stopwatch. The stopwatch will stop displaying automatically.
 
