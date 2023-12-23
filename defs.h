@@ -4,6 +4,7 @@
 
 #define FontFile "/home/josh/School/ETLC/countdown-display/fonts/Nunito/NunitoSans-VariableFont_YTLC,opsz,wdth,wght.ttf" /* Location of the font file */
 #define AlarmFile "/home/josh/School/ETLC/countdown-display/sounds/chime.wav" /* Location of the alarm sound */
+#define EEFile "/home/josh/School/ETLC/countdown-display/sounds/ee.wav" /* Location of the alarm sound */
 #define AlarmLen 6 /* Length to play alarm before closing (seconds) */
 
 #define RendererFlags SDL_RENDERER_PRESENTVSYNC
@@ -11,6 +12,8 @@
 
 #define ClockSize 600 /* Clock's font size */
 #define TimerSize 750 /* Timer's font size */
+
+#define DefaultTimerLen 120
 
 /* Default clock font color: #0077C8 */
 #define DefaultClockR 0x00
