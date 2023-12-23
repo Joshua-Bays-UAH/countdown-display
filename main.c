@@ -133,7 +133,7 @@ int main(int argc, char *argv[]){
 				hms[1] = floor((watchtime - hms[0] * 3600) / 60);
 				hms[2] = watchtime % 60;
 				
-				/* Generate the timer/stopwatch string */
+				/* Generate the stopwatch string */
 				tHours = hms[0] > 0;
 				if(tHours){
 					if(hms[0] < 10){ sprintf(timerStr, "0%u:", hms[0]); }
@@ -153,22 +153,26 @@ int main(int argc, char *argv[]){
 				hms[2] = timerRem % 60;
 				tHours = hms[0] > 0;
 				
-				/* Generate the timer/stopwatch string */
+				/* Generate the timer string */
 				if(tHours){
 					if(hms[0] < 10){ sprintf(timerStr, "0%u:", hms[0]); }
-					else{ sprintf(timerStr, "%u:", hms[0]); }
-				}//else{ sprintf(timerStr, "   "); }
-				if(hms[1] < 10){ sprintf(timerStr+3, "0%u", hms[1]); }
-				else{ sprintf(timerStr+3, "%u", hms[1]); }
-				if(hms[2] < 10){ sprintf(timerStr+5, ":0%u", hms[2]); }
-				else{ sprintf(timerStr+5, ":%u", hms[2]); }
-				//if(!tHours){ sprintf(timerStr+8, "   "); }
+					else{ sprintf(timerStr, "%u", hms[0]); }
+				}else{ sprintf(timerStr, " "); }
+				if(hms[1] < 10){ sprintf(timerStr+strlen(timerStr), "0%u", hms[1]); }
+				else{ sprintf(timerStr+strlen(timerStr), "%u", hms[1]); }
+				if(hms[2] < 10){ sprintf(timerStr+strlen(timerStr), ":0%u", hms[2]); }
+				else{ sprintf(timerStr+strlen(timerStr), ":%u", hms[2]); }
+				if(!tHours){ sprintf(timerStr+strlen(timerStr), " "); }
 				
 				/* Play alarm if timer has hit 00:00:00 */
 				if(timerRem == 0 && alarmPlay && !timerAlarm){
 					timerAlarm = 1;
 					system("pactl set-sink-volume @DEFAULT_SINK@ 75%"); /* Make the volume loud enough */
-					SDL_LoadWAV(AlarmFile, &wavSpec, &wavBuffer, &wavLength);
+					if(timerLen == 80){
+						SDL_LoadWAV(EEFile, &wavSpec, &wavBuffer, &wavLength);
+					}else{
+						SDL_LoadWAV(AlarmFile, &wavSpec, &wavBuffer, &wavLength);
+					}
 					audioDevice = SDL_OpenAudioDevice(NULL, 0, &wavSpec, NULL, 0);
 					SDL_QueueAudio(audioDevice, wavBuffer, wavLength);
 					SDL_PauseAudioDevice(audioDevice, 0);
@@ -248,7 +252,7 @@ void *cmdInterpreter(void *vargp){
 		RS232_CloseComport(serPort);
 		if(bytesRecieved > 0){
 			cmdBuff[bytesRecieved] = '\0'; /* End the string */
-			/* printf("C: %s\n", cmdBuff); */
+			printf("C: %s\n", cmdBuff);
 			if(strncmp(cmdBuff, "setc ", 5) == 0 && strlen(cmdBuff) >= 19){ /* setc command: sets the display time */
 				/* Example command: setc 022820232359590000 */
 				/*                  setc MMDDYYYYhhmmss0000 */
@@ -275,7 +279,7 @@ void *cmdInterpreter(void *vargp){
 				timerMode = 1;
 				timerAlarm = 0;
 				
-				/* printf("T: %u\n", timerLen); */
+				printf("T: %u\n", timerLen);
 			}else if(strncmp(cmdBuff, "swon", 4) == 0){ /* swon command: starts a stopwatch */
 				/* Start the stopwatch */
 				timerMode = 1;
@@ -296,7 +300,7 @@ void *cmdInterpreter(void *vargp){
 				/* printf("Clock toggled\n"); */
 			}else if(strncmp(cmdBuff, "togt", 4) == 0){ /* togt command: toggles the timer/stopwatch on the display and cancels the timer/stopwatch */
 				timerMode = !timerMode;
-				if(timerMode){ initTime = time(0); timerLen = DefaultTimer; timerAlarm = 0; }
+				if(timerMode){ initTime = time(0); timerLen = DefaultTimerLen; timerAlarm = 0; }
 				
 				/* printf("Timer toggled\n"); */
 			}else if(strncmp(cmdBuff, "toga", 4) == 0){ /* toga command: toggles the alarm sound */
@@ -324,6 +328,10 @@ void *cmdInterpreter(void *vargp){
 			}else if(strncmp(cmdBuff, "sec", 3) == 0){ /* sec command: toggles the seconds on the clock */
 					secs = !secs;
 					/* printf("Seconds place toggled \n"); */
+			}else if(strncmp(cmdBuff, "shd", 3) == 0){
+				system("sudo shutdown now");
+			}else if(strncmp(cmdBuff, "rbt", 3) == 0){
+				system("sudo reboot");
 			}
 			memset(cmdBuff, sizeof(cmdBuff), '\0'); /* Clear the command string */
 		}
