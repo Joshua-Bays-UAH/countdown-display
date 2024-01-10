@@ -263,7 +263,7 @@ void *cmdInterpreter(void *vargp){
 				/* printf("O: %lu\n", mktime(tim)); */
 			}else if(strncmp(cmdBuff, "sett ", 5) == 0 && strlen(cmdBuff) >= 13){ /* sett command: sets a timer */
 				/* Example command: sett 23:59:59 */
-				/*                  setc hh:mm:ss */
+				/*                  sett hh:mm:ss */
 				/* Get the timer length */
 				timerLen = (cmdBuff[5] - '0') * 36000;
 				timerLen += (cmdBuff[6] - '0') * 3600;
@@ -278,8 +278,26 @@ void *cmdInterpreter(void *vargp){
 				stopwatchMode = 0;
 				timerMode = 1;
 				timerAlarm = 0;
+				timerPause = 0;
 				
 				printf("T: %u\n", timerLen);
+			}else if(strncmp(cmdBuff, "dpyt ", 5) == 0 && strlen(cmdBuff) >= 13){ /* dpyt command: displays a timer */
+				/* Example command: dpyt 23:59:59 */
+				/*                  dpyt hh:mm:ss */
+				timerLen = (cmdBuff[5] - '0') * 36000;
+				timerLen += (cmdBuff[6] - '0') * 3600;
+				timerLen += (cmdBuff[8] - '0') * 600;
+				timerLen += (cmdBuff[9] - '0') * 60;
+				timerLen += (cmdBuff[11] - '0') * 10;
+				timerLen += (cmdBuff[12] - '0');
+				initTime = time(0);
+				timerRem = timerLen - (time(0) - initTime);
+				stopwatchMode = 0;
+				timerMode = 1;
+				timerAlarm = 0;
+				timerPause = 1;
+				
+				printf("D: %u\n", timerLen);
 			}else if(strncmp(cmdBuff, "swon", 4) == 0){ /* swon command: starts a stopwatch */
 				/* Start the stopwatch */
 				timerMode = 1;

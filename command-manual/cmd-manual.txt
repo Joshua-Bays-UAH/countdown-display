@@ -11,6 +11,11 @@ sett
 	Set the timer to a specific time in the hh:mm:ss format.
 	(Example above sets a timer for 55 minutes and 5 seconds)
 
+dpyt
+	Ex: dpyt 00:55:05
+	Set the timer to a specific time in the hh:mm:ss format, but not start the timer.
+	Example above displays a timer for 55 minutes and 5 seconds)
+
 swon
 	Ex: swon
 	Turn on the stopwatch. The stopwatch will display automatically.
