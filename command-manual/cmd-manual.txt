@@ -7,14 +7,14 @@ setc
 	(Example above sets the clock to 12.25.2023 at 8:15:45 PM)
 
 sett
-	Ex: sett 00:55:05
+	Ex: sett 80
 	Set the timer to a specific time in the hh:mm:ss format.
-	(Example above sets a timer for 55 minutes and 5 seconds)
+	(Example above sets a timer for 1 hour and 20 minutes)
 
 dpyt
-	Ex: dpyt 00:55:05
-	Set the timer to a specific time in the hh:mm:ss format, but not start the timer.
-	Example above displays a timer for 55 minutes and 5 seconds)
+	Ex: dpyt 80
+	Set the timer to a specific time in the hh:mm:ss format, but not start the timer (displays the timer).
+	(Example above displays a timer for 1 hour and 20 minutes)
 
 swon
 	Ex: swon
@@ -47,3 +47,11 @@ pzs
 sec
 	Ex: sec
 	Toggle the seconds display on the clock
+
+shd
+	Ex: shd
+	Shuts the entire computer down (sudo/admin access required).
+
+rbt
+	Ex: rbt
+	Reboots the entire computer (sudo/admin access required).

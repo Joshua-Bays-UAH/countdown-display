@@ -258,6 +258,7 @@ void *cmdInterpreter(void *vargp){
 				/*                  setc MMDDYYYYhhmmss0000 */
 				cmdBuff[19] = '\0';
 				strptime(cmdBuff+5, "%m%d%Y%H%M%S", tim);
+				//strftime(cmdBuff+5, "%m%d%Y%H%M%S", tim);
 				offset = mktime(tim) - time(0);
 				
 				/* printf("O: %lu\n", mktime(tim)); */
@@ -265,12 +266,18 @@ void *cmdInterpreter(void *vargp){
 				/* Example command: sett 23:59:59 */
 				/*                  sett hh:mm:ss */
 				/* Get the timer length */
+				sprintf(cmdBuff+5, "%u", timerLen);
+				timerLen *= 60;
+				
+				/* Old method of doing it */
+				/*
 				timerLen = (cmdBuff[5] - '0') * 36000;
 				timerLen += (cmdBuff[6] - '0') * 3600;
 				timerLen += (cmdBuff[8] - '0') * 600;
 				timerLen += (cmdBuff[9] - '0') * 60;
 				timerLen += (cmdBuff[11] - '0') * 10;
 				timerLen += (cmdBuff[12] - '0');
+				*/
 				
 				/* Start the timer */
 				initTime = time(0);
@@ -284,12 +291,22 @@ void *cmdInterpreter(void *vargp){
 			}else if(strncmp(cmdBuff, "dpyt ", 5) == 0 && strlen(cmdBuff) >= 13){ /* dpyt command: displays a timer */
 				/* Example command: dpyt 23:59:59 */
 				/*                  dpyt hh:mm:ss */
+				
+				/* Get the timer length */
+				sprintf(cmdBuff+5, "%u", timerLen);
+				timerLen *= 60;
+				
+				/* Old method of doing it */
+				/*
 				timerLen = (cmdBuff[5] - '0') * 36000;
 				timerLen += (cmdBuff[6] - '0') * 3600;
 				timerLen += (cmdBuff[8] - '0') * 600;
 				timerLen += (cmdBuff[9] - '0') * 60;
 				timerLen += (cmdBuff[11] - '0') * 10;
 				timerLen += (cmdBuff[12] - '0');
+				*/
+				
+				/* Start the timer */
 				initTime = time(0);
 				timerRem = timerLen - (time(0) - initTime);
 				stopwatchMode = 0;
