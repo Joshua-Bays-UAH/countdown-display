@@ -138,12 +138,12 @@ int main(int argc, char *argv[]){
 				if(tHours){
 					if(hms[0] < 10){ sprintf(timerStr, "0%u:", hms[0]); }
 					else{ sprintf(timerStr, "%u:", hms[0]); }
-				}//else{ sprintf(timerStr, "   "); }
+				}/* else{ sprintf(timerStr, "   "); } */
 				if(hms[1] < 10){ sprintf(timerStr + strlen(timerStr), "0%u", hms[1]); }
 				else{ sprintf(timerStr + strlen(timerStr), "%u", hms[1]); }
 				if(hms[2] < 10){ sprintf(timerStr + strlen(timerStr), ":0%u", hms[2]); }
 				else{ sprintf(timerStr + strlen(timerStr), ":%u", hms[2]); }
-				//if(!tHours){ sprintf(timerStr + strlen(timerStr), "   "); }
+				/* if(!tHours){ sprintf(timerStr + strlen(timerStr), "   "); } */
 			}else{ /* Timer handling */
 				/* Update time remaining (if unpaused) */
 				if(!timerPause){ timerRem = timerLen - (time(0) - initTime); }
@@ -187,7 +187,7 @@ int main(int argc, char *argv[]){
 			alarmClosed = 1;
 		}
 		
-		// Window Events
+		/* Window Events */
 		while(SDL_PollEvent(&event)){
 			switch(event.type){
 				case SDL_QUIT: /* Close the program if a request to close the window is given */
@@ -258,15 +258,15 @@ void *cmdInterpreter(void *vargp){
 				/*                  setc MMDDYYYYhhmmss0000 */
 				cmdBuff[19] = '\0';
 				strptime(cmdBuff+5, "%m%d%Y%H%M%S", tim);
-				//strftime(cmdBuff+5, "%m%d%Y%H%M%S", tim);
+				/* strftime(cmdBuff+5, "%m%d%Y%H%M%S", tim); */
 				offset = mktime(tim) - time(0);
 				
 				/* printf("O: %lu\n", mktime(tim)); */
-			}else if(strncmp(cmdBuff, "sett ", 5) == 0 && strlen(cmdBuff) >= 13){ /* sett command: sets a timer */
-				/* Example command: sett 23:59:59 */
-				/*                  sett hh:mm:ss */
+			}else if(strncmp(cmdBuff, "sett ", 5) == 0 && strlen(cmdBuff) >= 5){ /* sett command: sets a timer */
+				/* Example command: sett 80 */
+				/*                  sett [minutes] */
 				/* Get the timer length */
-				sprintf(cmdBuff+5, "%u", timerLen);
+				sscanf(cmdBuff+5, "%u", &timerLen);
 				timerLen *= 60;
 				
 				/* Old method of doing it */
@@ -288,12 +288,12 @@ void *cmdInterpreter(void *vargp){
 				timerPause = 0;
 				
 				printf("T: %u\n", timerLen);
-			}else if(strncmp(cmdBuff, "dpyt ", 5) == 0 && strlen(cmdBuff) >= 13){ /* dpyt command: displays a timer */
-				/* Example command: dpyt 23:59:59 */
-				/*                  dpyt hh:mm:ss */
+			}else if(strncmp(cmdBuff, "dpyt ", 5) == 0 && strlen(cmdBuff) >= 5){ /* dpyt command: displays a timer */
+				/* Example command: dpyt 80 */
+				/*                  dpyt [minutes] */
 				
 				/* Get the timer length */
-				sprintf(cmdBuff+5, "%u", timerLen);
+				sscanf(cmdBuff+5, "%u", &timerLen);
 				timerLen *= 60;
 				
 				/* Old method of doing it */
