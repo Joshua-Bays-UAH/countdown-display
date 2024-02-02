@@ -2,7 +2,7 @@ Serial Commands for Countdown Display
 Joshua Bays (UAH ETLC)
 
 setc
-	Ex: setc 122520232015450000
+	Ex: setc 12252023201545
 	Set the clock to a given time in the MMDDYYYYhhmmss format.
 	(Example above sets the clock to 12.25.2023 at 8:15:45 PM)
 
